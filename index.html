@@ -651,7 +651,7 @@
     <p>형제주차장 사장님 전용 — 예약자 전체 정보 확인</p>
   </div>
   <section class="sec">
-    <div class="wrap">
+    <div class="wrap" style="max-width:1600px">
       <div class="admin-gate" id="admin-gate">
         <div class="ic">🔒</div>
         <h3>관리자 로그인</h3>
@@ -667,11 +667,13 @@
           <div class="stats-today">
             <div class="stats-today-item"><span>오늘 방문자</span><b id="stat-today-uniq">0</b></div>
             <div class="stats-today-item"><span>오늘 페이지뷰</span><b id="stat-today-pv">0</b></div>
+            <div class="stats-today-item"><span>오늘 모바일</span><b id="stat-today-mobile">0</b></div>
+            <div class="stats-today-item"><span>오늘 PC</span><b id="stat-today-pc">0</b></div>
           </div>
           <div class="table-wrap" style="border:1px solid var(--line)">
             <table class="stats-table">
-              <thead><tr><th>날짜</th><th>순방문</th><th>페이지뷰</th></tr></thead>
-              <tbody id="stats-body"><tr><td colspan="3" style="text-align:center;color:var(--muted)">불러오는 중...</td></tr></tbody>
+              <thead><tr><th>날짜</th><th>순방문</th><th>페이지뷰</th><th>모바일</th><th>PC</th></tr></thead>
+              <tbody id="stats-body"><tr><td colspan="5" style="text-align:center;color:var(--muted)">불러오는 중...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -805,7 +807,7 @@
         });
     }
     if(action === 'visit'){
-      return supabaseClient.rpc('track_visit', {p_is_new_uniq: !!payload.isNewUniq}).then(function(res){
+      return supabaseClient.rpc('track_visit', {p_is_new_uniq: !!payload.isNewUniq, p_is_mobile: !!payload.isMobile}).then(function(res){
         if(res.error) throw new Error(res.error.message);
         return {ok:true};
       });
@@ -838,7 +840,7 @@
     }
     if(action === 'stats'){
       var n = params.n || 7;
-      return supabaseClient.from('stats').select('date, uniq, pv').order('date', {ascending:false}).limit(n)
+      return supabaseClient.from('stats').select('date, uniq, pv, mobilePv:mobile_pv, pcPv:pc_pv').order('date', {ascending:false}).limit(n)
         .then(function(res){
           if(res.error) throw new Error(res.error.message);
           return {list: res.data || []};
@@ -1183,6 +1185,9 @@
     var pad = function(n){ return n < 10 ? '0'+n : ''+n; };
     return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
   }
+  function isMobileDevice(){
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  }
   function trackVisit(){
     if(!apiReady()) return;
     var key = statsDateKey(new Date());
@@ -1194,7 +1199,7 @@
         localStorage.setItem(flag, '1');
       }
     }catch(e){}
-    apiPost('visit', {isNewUniq: isNewUniq}).catch(function(){});
+    apiPost('visit', {isNewUniq: isNewUniq, isMobile: isMobileDevice()}).catch(function(){});
   }
   trackVisit();
 
@@ -1202,6 +1207,8 @@
   var statsBody = document.getElementById('stats-body');
   var statTodayUniq = document.getElementById('stat-today-uniq');
   var statTodayPv = document.getElementById('stat-today-pv');
+  var statTodayMobile = document.getElementById('stat-today-mobile');
+  var statTodayPc = document.getElementById('stat-today-pc');
   var statsMoreBtn = document.getElementById('stats-more-btn');
   function renderStats(){
     if(!statsBody) return;
@@ -1212,16 +1219,18 @@
       var todayKey = statsDateKey(new Date());
       var todayRow = null;
       if(!docs.length){
-        statsBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted)">아직 방문 기록이 없습니다.</td></tr>';
+        statsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">아직 방문 기록이 없습니다.</td></tr>';
       }
       docs.forEach(function(d){
         if(d.date === todayKey) todayRow = d;
         var tr = document.createElement('tr');
-        tr.innerHTML = '<td>'+(d.date||'')+'</td><td>'+(d.uniq||0)+'</td><td>'+(d.pv||0)+'</td>';
+        tr.innerHTML = '<td>'+(d.date||'')+'</td><td>'+(d.uniq||0)+'</td><td>'+(d.pv||0)+'</td><td>'+(d.mobilePv||0)+'</td><td>'+(d.pcPv||0)+'</td>';
         statsBody.appendChild(tr);
       });
       statTodayUniq.textContent = todayRow ? todayRow.uniq : 0;
       statTodayPv.textContent = todayRow ? todayRow.pv : 0;
+      if(statTodayMobile) statTodayMobile.textContent = todayRow ? (todayRow.mobilePv||0) : 0;
+      if(statTodayPc) statTodayPc.textContent = todayRow ? (todayRow.pcPv||0) : 0;
     }).catch(function(){});
   }
   if(statsMoreBtn){
