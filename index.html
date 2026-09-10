@@ -473,8 +473,8 @@
         <p>형제주차장 김해공항점</p>
       </div>
       <div class="lookup-box">
-        <input type="text" id="lk-name" placeholder="예약자명" autocomplete="off" name="hjp-lookup-name">
-        <input type="text" id="lk-phone" placeholder="휴대폰 뒷4자리" autocomplete="off" name="hjp-lookup-phone4" inputmode="numeric" maxlength="4">
+        <input type="text" id="lk-name" placeholder="예약자명" autocomplete="off" name="hjp-lookup-name" readonly onfocus="this.removeAttribute('readonly')">
+        <input type="text" id="lk-phone" placeholder="휴대폰 뒷4자리" autocomplete="off" name="hjp-lookup-phone4" inputmode="numeric" maxlength="4" readonly onfocus="this.removeAttribute('readonly')">
         <button class="btn" id="lk-btn">예약조회</button>
         <button class="btn btn-ghost" id="lk-reset" style="background:transparent;color:#f2ece0;border-color:#463d2c">전체보기</button>
       </div>
@@ -1164,6 +1164,13 @@
       lkBtn.textContent = lkBtnText;
     });
   });
+  // 브라우저 자동완성이 페이지 로드 후 뒤늦게 값을 채워넣는 경우를 대비한 안전장치
+  setTimeout(function(){
+    var lkNameEl = document.getElementById('lk-name');
+    var lkPhoneEl = document.getElementById('lk-phone');
+    if(lkNameEl && !lkNameEl.matches(':focus')) lkNameEl.value = '';
+    if(lkPhoneEl && !lkPhoneEl.matches(':focus')) lkPhoneEl.value = '';
+  }, 400);
   document.getElementById('lk-reset').addEventListener('click', function(){
     document.getElementById('lk-name').value = '';
     document.getElementById('lk-phone').value = '';
